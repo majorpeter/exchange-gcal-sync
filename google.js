@@ -26,6 +26,37 @@ class GoogleCalendar {
     }
 
     /**
+     * get all calendar events between start and end datetimes
+     * @param {Date} startDateTime start date and time for filtering
+     * @param {Date} endDateTime end date and time for filtering
+     * @note max 1000 entries are returned
+     */
+    async getCalendarEvents(startDateTime, endDateTime) {
+        const calendar = google.calendar({ version: 'v3', auth: await this.#auth });
+        const res = await calendar.events.list({
+            calendarId: this.#calendarId,
+            timeMin: startDateTime.toISOString(),
+            timeMax: endDateTime.toISOString(),
+            maxResults: 1000,   // max would be 2500
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+        return res.data.items;
+    }
+
+    /**
+     * remove an entry from calendar
+     * @param {string} id 'id' field in calendar object
+     */
+    async deleteCalendarEvent(id) {
+        const calendar = google.calendar({ version: 'v3', auth: await this.#auth });
+        await calendar.events.delete({
+            calendarId: this.#calendarId,
+            eventId: id
+        });
+    }
+
+    /**
      * Lists the next 10 events on the user's primary calendar.
      */
     async listEvents() {
@@ -46,6 +77,18 @@ class GoogleCalendar {
         events.map((event, i) => {
             const start = event.start.dateTime || event.start.date;
             console.log(`${start} - ${event.summary}`);
+        });
+    }
+
+    /**
+     * create new event
+     * @param {calendar_v3.Schema$Event} event event details
+     */
+    async insertEvent(eventBody) {
+        const calendar = google.calendar({ version: 'v3', auth: await this.#auth });
+        const result = await calendar.events.insert({
+            calendarId: this.#calendarId,
+            requestBody: eventBody
         });
     }
 
