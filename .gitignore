@@ -1,3 +1,6 @@
 node_modules/
 config.json
 package-lock.json
+.vscode/
+credentials.json
+token.json

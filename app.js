@@ -1,10 +1,13 @@
 const fs = require('fs');
 const ExchangeCalendar = require('./exchange');
+const GoogleCalendar = require('./google');
 
 let config = JSON.parse(fs.readFileSync('config.json'));
-let exch = new ExchangeCalendar(config.serverurl, config.domain, config.username, config.password);
+let exch = new ExchangeCalendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
+let gcal = new GoogleCalendar(config.googleCalendarId);
 
-exch.getCalendarEventsThisWeek().then((events) => {
+(async () => {
+    let events = await exch.getCalendarEventsThisWeek();
     let meetingtime = 0;
 
     events.value.forEach((event) => {
@@ -25,4 +28,6 @@ exch.getCalendarEventsThisWeek().then((events) => {
 
     console.log('All meeting time for this week: ' + meetingtime.toFixed(2) + ' hrs');
     console.log('Meeting time percentage: ' + (meetingtime / 40).toFixed(2) + '%');
-});
+
+    gcal.listEvents();
+})();
