@@ -7,19 +7,34 @@ let config = JSON.parse(fs.readFileSync('config.json'));
 let exch = new ExchangeCalendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
+const DRY_RUN = true;
+
+function convertExchangeResponseToGCal(response) {
+    if (['Organizer', 'Accepted'].includes(response)) {
+        return 'confirmed';
+    }
+    if (['TentativelyAccepted', 'NotResponded'].includes(response)) {
+        return 'tentative';
+    }
+    throw Error('Unknown response status: ' + response);
+}
+
 (async () => {
-    let gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfWeek());
-    let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfWeek());
+    let gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+    let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
 
     let meetingtime = 0;
     exchEvents.value.forEach((event) => {
         let data = {
             subject: event.Subject,
+            body: event.Body.Content,
+            location: event.Location.DisplayName,
             start: new Date(event.Start.DateTime + 'Z'),
             end: new Date(event.End.DateTime + 'Z'),
             attendees: event.Attendees.map(value => value.EmailAddress.Address),
             iCalUId: event.iCalUId,
             lastModified: event.LastModifiedDateTime,
+            status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
         };
 
         let foundGEvent = gEvents.find(value => value.extendedProperties.private.sourceICalUId == event.iCalUId);
@@ -29,8 +44,11 @@ let gcal = new GoogleCalendar(config.googleCalendarId);
         } else {
             const gcalEventBody = {
                 summary: data.subject,
+                description: data.body,
+                location: data.location,
                 start: {dateTime: data.start.toISOString()},
                 end: {dateTime: data.end.toISOString()},
+                status: data.status,
                 // cannot use 'iCalUID' for sync
                 extendedProperties: {private: {
                     sourceICalUId: data.iCalUId,
@@ -38,7 +56,9 @@ let gcal = new GoogleCalendar(config.googleCalendarId);
                 }}
             };
             console.log('inserting event: %s', data.subject);
-            //TODO gcal.insertEvent(gcalEventBody);
+            if (!DRY_RUN) {
+                gcal.insertEvent(gcalEventBody);
+            }
         }
 
         if (data.attendees.length > 0) {
@@ -52,7 +72,9 @@ let gcal = new GoogleCalendar(config.googleCalendarId);
     gEvents.forEach((event) => {
         if (!event.found) {
             console.log('removing: %d', event.summary);
-            gcal.deleteCalendarEvent(event.id);
+            if (!DRY_RUN) {
+                gcal.deleteCalendarEvent(event.id);
+            }
         }
     });
 

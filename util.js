@@ -13,6 +13,12 @@ module.exports = {
         return date;
     },
 
+    endOfNextWeek: function() {
+        let date = this.startOfWeek();
+        date.setDate(date.getDate() + 14);
+        return date;
+    },
+
     startOfDay: function() {
         let date = new Date();
         date.setHours(0, 0, 0, 0);
