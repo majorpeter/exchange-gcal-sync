@@ -1,4 +1,6 @@
 {
+  "name": "exchange-gcal-sync",
+  "version": "0.0.0",
   "main": "app.js",
   "scripts": {
     "build": "tsc"
