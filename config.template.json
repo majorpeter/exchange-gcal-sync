@@ -1,0 +1,7 @@
+{
+    "exchangeUsername": "john.doe",
+    "exchangePassword": "MySecretPassword",
+    "exchangeDomain": "WORKGROUP",
+    "exchangeServerUrl": "https://mycompany.example.com/",
+    "googleCalendarId": "rand0mg00gl3h4$h@group.calendar.google.com"
+}
