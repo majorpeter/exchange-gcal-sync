@@ -2,6 +2,7 @@ const util = require('./util');
 
 import { readFileSync } from 'fs';
 import { calendar_v3 } from 'googleapis';
+import path = require('path');
 import { Exchange } from './exchange';
 import { GoogleCalendar } from './google';
 
@@ -11,7 +12,7 @@ const config : {
     exchangeUsername: string;
     exchangePassword: string;
     googleCalendarId: string;
-} = JSON.parse(readFileSync('config.json').toString());
+} = JSON.parse(readFileSync(path.join(__dirname, 'config.json')).toString());
 let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
