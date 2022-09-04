@@ -1,8 +1,8 @@
-const fs = require('fs');
 const util = require('./util');
 
+import { readFileSync } from 'fs';
 import { calendar_v3 } from 'googleapis';
-import {Exchange} from './exchange';
+import { Exchange } from './exchange';
 import { GoogleCalendar } from './google';
 
 const config : {
@@ -11,7 +11,7 @@ const config : {
     exchangeUsername: string;
     exchangePassword: string;
     googleCalendarId: string;
-} = JSON.parse(fs.readFileSync('config.json'));
+} = JSON.parse(readFileSync('config.json').toString());
 let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
@@ -26,6 +26,20 @@ function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'conf
     default:
         throw Error('Unknown response status: ' + response);
     }
+}
+
+function formatCalendarEventBody(event: Exchange.Event): string {
+    let result = '';
+    if (event.Attendees.length > 0) {
+        result += '<strong>Attendees</strong>:\n';
+        result += event.Attendees.map(attendee => {
+            return attendee.EmailAddress.Name + ' &lt;' + attendee.EmailAddress.Address + '&gt;';
+        }).join('; ') + '\n';
+    }
+    result += event.Body.Content;
+    result += '<a href="' + event.WebLink + '">View in Exchange</a>';
+
+    return result;
 }
 
 async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
@@ -49,7 +63,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
     exchEvents.value.forEach((event: Exchange.Event) => {
         const gcalEventBody: gEvent = {
             summary: event.Subject,
-            description: event.Body.Content,
+            description: formatCalendarEventBody(event),
             location: event.Location.DisplayName,
             start: {dateTime: (new Date(event.Start.DateTime + 'Z')).toISOString()},
             end: {dateTime: (new Date(event.End.DateTime + 'Z')).toISOString()},
