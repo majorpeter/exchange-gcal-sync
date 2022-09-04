@@ -2,6 +2,7 @@
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "googleapis": "^105.0.0",
-    "httpntlm": "^1.7.7"
+    "httpntlm": "^1.7.7",
+    "yargs": "^17.5.1"
   }
 }

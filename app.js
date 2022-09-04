@@ -7,8 +7,6 @@ let config = JSON.parse(fs.readFileSync('config.json'));
 let exch = new ExchangeCalendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
-const DRY_RUN = true;
-
 function convertExchangeResponseToGCal(response) {
     if (['Organizer', 'Accepted'].includes(response)) {
         return 'confirmed';
@@ -19,7 +17,7 @@ function convertExchangeResponseToGCal(response) {
     throw Error('Unknown response status: ' + response);
 }
 
-(async () => {
+async function syncEvents(dryRun, forceUpdate) {
     let gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
     let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
 
@@ -56,7 +54,7 @@ function convertExchangeResponseToGCal(response) {
                 }}
             };
             console.log('inserting event: %s', data.subject);
-            if (!DRY_RUN) {
+            if (!dryRun) {
                 gcal.insertEvent(gcalEventBody);
             }
         }
@@ -72,7 +70,7 @@ function convertExchangeResponseToGCal(response) {
     gEvents.forEach((event) => {
         if (!event.found) {
             console.log('removing: %d', event.summary);
-            if (!DRY_RUN) {
+            if (!dryRun) {
                 gcal.deleteCalendarEvent(event.id);
             }
         }
@@ -80,4 +78,22 @@ function convertExchangeResponseToGCal(response) {
 
     console.log('All meeting time for this week: ' + meetingtime.toFixed(2) + ' hrs');
     console.log('Meeting time percentage: ' + (meetingtime / 40 * 100).toFixed(2) + '%');
-})();
+}
+
+const args = require('yargs')
+  .scriptName('exchange-gcal-sync')
+  .option('force', {
+      type: 'boolean',
+      alias: 'f',
+      default: false,
+      desc: 'Force update of entries even if unchanged'
+  })
+  .option('dry-run', {
+      type: 'boolean',
+      alias: 'n',
+      default: false,
+      desc: 'Do not change Google Calendar entries, just log instead.'
+  })
+  .help()
+  .argv;
+syncEvents(args.dryRun, args.force);
