@@ -82,12 +82,26 @@ class GoogleCalendar {
 
     /**
      * create new event
-     * @param {calendar_v3.Schema$Event} event event details
+     * @param {calendar_v3.Schema$Event} eventBody event details
      */
     async insertEvent(eventBody) {
         const calendar = google.calendar({ version: 'v3', auth: await this.#auth });
         const result = await calendar.events.insert({
             calendarId: this.#calendarId,
+            requestBody: eventBody
+        });
+    }
+
+    /**
+     * update already existing event
+     * @param {string} eventId 'id' field in calendar object
+     * @param {calendar_v3.Schema$Event} eventBody event details
+     */
+    async patchEvent(eventId, eventBody) {
+        const calendar = google.calendar({ version: 'v3', auth: await this.#auth });
+        const result = await calendar.events.patch({
+            calendarId: this.#calendarId,
+            eventId: eventId,
             requestBody: eventBody
         });
     }
