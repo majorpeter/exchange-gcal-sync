@@ -1,25 +1,33 @@
-#!/usr/bin/env node
-
 const fs = require('fs');
-const ExchangeCalendar = require('./exchange');
 const GoogleCalendar = require('./google');
 const util = require('./util');
 
-let config = JSON.parse(fs.readFileSync('config.json'));
-let exch = new ExchangeCalendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
+import {Exchange} from './exchange';
+
+const config : {
+    exchangeServerUrl: string;
+    exchangeDomain: string;
+    exchangeUsername: string;
+    exchangePassword: string;
+    googleCalendarId: string;
+} = JSON.parse(fs.readFileSync('config.json'));
+let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
-function convertExchangeResponseToGCal(response) {
-    if (['Organizer', 'Accepted'].includes(response)) {
+function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'confirmed'|'tentative' {
+    switch (response) {
+    case "Organizer":
+    case "Accepted":
         return 'confirmed';
-    }
-    if (['TentativelyAccepted', 'NotResponded'].includes(response)) {
+    case "TentativelyAccepted":
+    case "NotResponded":
         return 'tentative';
+    default:
+        throw Error('Unknown response status: ' + response);
     }
-    throw Error('Unknown response status: ' + response);
 }
 
-async function syncEvents(dryRun, forceUpdate) {
+async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
     let gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
     console.log('Found %d events in Google Calendar', gEvents.length);
     let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());

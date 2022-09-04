@@ -4,3 +4,6 @@ package-lock.json
 .vscode/
 credentials.json
 token.json
+app.js
+exchange.js
+*.js.map

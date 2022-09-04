@@ -10,6 +10,7 @@ Clone from Github and install dependencies:
 git clone https://github.com/majorpeter/exchange-gcal-sync.git
 cd exchange-gcal-sync
 npm install
+npx tsc
 ```
 
 ## Configuraton
