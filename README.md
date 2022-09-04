@@ -1,5 +1,7 @@
 # exhange-gcal-sync
 
+[![](https://github.com/majorpeter/exchange-gcal-sync/actions/workflows/build.yml/badge.svg)](https://github.com/majorpeter/exchange-gcal-sync/actions/workflows/build.yml)
+
 A simple utility that fetches calendar events from a _Microsoft Exchange_ server and synchronizes them with a _Google Calendar_ (periodically).
 
 ## Installation
