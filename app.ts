@@ -31,6 +31,14 @@ function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'conf
 async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
     interface gEvent extends calendar_v3.Schema$Event {
         found?: boolean;
+        extendedProperties?: {
+            private?: {
+                /// used to uniquely identify the Event in Exchange
+                sourceICalUId?: string;
+                /// used to detectt changes in Exchange since last sync
+                sourceLastModified?: string;
+            };
+        };
     };
 
     let gEvents: gEvent[] = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
@@ -39,7 +47,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
     console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
 
     exchEvents.value.forEach((event: Exchange.Event) => {
-        const gcalEventBody: calendar_v3.Schema$Event = {
+        const gcalEventBody: gEvent = {
             summary: event.Subject,
             description: event.Body.Content,
             location: event.Location.DisplayName,
