@@ -19,7 +19,9 @@ function convertExchangeResponseToGCal(response) {
 
 async function syncEvents(dryRun, forceUpdate) {
     let gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+    console.log('Found %d events in Google Calendar', gEvents.length);
     let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+    console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
 
     exchEvents.value.forEach((event) => {
         let data = {
@@ -80,6 +82,8 @@ async function syncEvents(dryRun, forceUpdate) {
             }
         }
     });
+
+    console.log('Sync done');
 }
 
 const args = require('yargs')
@@ -96,6 +100,22 @@ const args = require('yargs')
       default: false,
       desc: 'Do not change Google Calendar entries, just log instead.'
   })
+  .option('period', {
+      type: 'number',
+      alias: 'p',
+      desc: 'Update period in minutes',
+      nargs: 1,
+      default: null
+  })
   .help()
+  .strict()
   .argv;
+
 syncEvents(args.dryRun, args.force);
+
+if (args.period) {
+    setInterval(() => {
+        console.log('Periodic run after %d min', args.period);
+        syncEvents(args.dryRun, args.force);
+    }, args.period * 1000 * 60);
+}
