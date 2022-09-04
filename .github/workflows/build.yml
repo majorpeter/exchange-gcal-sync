@@ -14,6 +14,8 @@ jobs:
           npm install
       - run: |
           npm run-script build
+      - run: |
+          rm -Rf node_modules/ .git/ .github/
       - uses: actions/upload-artifact@v3
         with:
           name: exchange-gcal-sync
