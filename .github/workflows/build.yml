@@ -14,9 +14,7 @@ jobs:
           npm install
       - run: |
           npm run-script build
-      - run: |
-          npm pack
       - uses: actions/upload-artifact@v3
         with:
-          name: npm-pack
-          path: exchange-gcal-sync-*.tgz
+          name: exchange-gcal-sync
+          path: ${{ github.workspace }}
