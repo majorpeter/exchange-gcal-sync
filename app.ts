@@ -38,29 +38,18 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
     let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
     console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
 
-    exchEvents.value.forEach((event) => {
-        let data = {
-            subject: event.Subject,
-            body: event.Body.Content,
-            location: event.Location.DisplayName,
-            start: new Date(event.Start.DateTime + 'Z'),
-            end: new Date(event.End.DateTime + 'Z'),
-            attendees: event.Attendees.map(value => value.EmailAddress.Address),
-            iCalUId: event.iCalUId,
-            lastModified: event.LastModifiedDateTime,
-            status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
-        };
+    exchEvents.value.forEach((event: Exchange.Event) => {
         const gcalEventBody: calendar_v3.Schema$Event = {
-            summary: data.subject,
-            description: data.body,
-            location: data.location,
-            start: {dateTime: data.start.toISOString()},
-            end: {dateTime: data.end.toISOString()},
-            status: data.status,
+            summary: event.Subject,
+            description: event.Body.Content,
+            location: event.Location.DisplayName,
+            start: {dateTime: (new Date(event.Start.DateTime + 'Z')).toISOString()},
+            end: {dateTime: (new Date(event.End.DateTime + 'Z')).toISOString()},
+            status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
             // cannot use 'iCalUID' for sync
             extendedProperties: {private: {
-                sourceICalUId: data.iCalUId,
-                sourceLastModified: data.lastModified
+                sourceICalUId: event.iCalUId,
+                sourceLastModified: event.LastModifiedDateTime
             }}
         };
 
@@ -76,12 +65,12 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
                 }
             }
 
-            console.log('patching event: %s', data.subject);
+            console.log('patching event: %s', event.Subject);
             if (!dryRun) {
                 gcal.patchEvent(foundGEvent.id, gcalEventBody);
             }
         } else {
-            console.log('inserting event: %s', data.subject);
+            console.log('inserting event: %s', event.Subject);
             if (!dryRun) {
                 gcal.insertEvent(gcalEventBody);
             }
