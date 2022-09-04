@@ -24,5 +24,5 @@ Create a `config.json` in the application's folder, use the template `config.tem
 See the help text of the application:
 
 ```sh
-./app.js -h
+node . -h
 ```
