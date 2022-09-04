@@ -1,8 +1,9 @@
 const fs = require('fs');
-const GoogleCalendar = require('./google');
 const util = require('./util');
 
+import { calendar_v3 } from 'googleapis';
 import {Exchange} from './exchange';
+import { GoogleCalendar } from './google';
 
 const config : {
     exchangeServerUrl: string;
@@ -28,7 +29,11 @@ function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'conf
 }
 
 async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
-    let gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+    interface gEvent extends calendar_v3.Schema$Event {
+        found?: boolean;
+    };
+
+    let gEvents: gEvent[] = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
     console.log('Found %d events in Google Calendar', gEvents.length);
     let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
     console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
@@ -45,7 +50,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
             lastModified: event.LastModifiedDateTime,
             status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
         };
-        const gcalEventBody = {
+        const gcalEventBody: calendar_v3.Schema$Event = {
             summary: data.subject,
             description: data.body,
             location: data.location,
@@ -121,6 +126,9 @@ const args = require('yargs')
   .strict()
   .argv;
 
+if (args.dryRun) {
+    console.log('Dry-run: Not writing to Google Calendar');
+}
 syncEvents(args.dryRun, args.force);
 
 if (args.period) {
