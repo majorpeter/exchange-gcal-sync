@@ -8,3 +8,5 @@ app.js
 exchange.js
 google.js
 *.js.map
+exchEvents.json
+gEvents.json

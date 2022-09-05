@@ -1,6 +1,6 @@
 const util = require('./util');
 
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { calendar_v3 } from 'googleapis';
 import path = require('path');
 import { Exchange } from './exchange';
@@ -43,7 +43,7 @@ function formatCalendarEventBody(event: Exchange.Event): string {
     return result;
 }
 
-async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
+async function syncEvents(dryRun: boolean, forceUpdate: boolean, save: boolean, load: boolean) {
     interface gEvent extends calendar_v3.Schema$Event {
         found?: boolean;
         extendedProperties?: {
@@ -56,10 +56,24 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean) {
         };
     };
 
-    let gEvents: gEvent[] = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
-    console.log('Found %d events in Google Calendar', gEvents.length);
-    let exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
-    console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
+    let gEvents: gEvent[];
+    let exchEvents: Exchange.EventList;
+
+    if (!load) {
+        gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+        console.log('Found %d events in Google Calendar', gEvents.length);
+
+        exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+        console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
+    } else {
+        gEvents = JSON.parse(readFileSync('gEvents.json').toString());
+        exchEvents = JSON.parse(readFileSync('exchEvents.json').toString());
+    }
+
+    if (save) {
+        writeFileSync('gEvents.json', JSON.stringify(gEvents));
+        writeFileSync('exchEvents.json', JSON.stringify(exchEvents));
+    }
 
     exchEvents.value.forEach((event: Exchange.Event) => {
         const gcalEventBody: gEvent = {
@@ -127,6 +141,16 @@ const args = require('yargs')
       default: false,
       desc: 'Do not change Google Calendar entries, just log instead.'
   })
+  .option('save', {
+    type: 'boolean',
+    default: false,
+    desc: 'Save remote data to JSON files (useful for debugging)'
+  })
+  .option('load', {
+    type: 'boolean',
+    default: false,
+    desc: 'Load "remote" data from JSON files (when debugging)'
+  })
   .option('period', {
       type: 'number',
       alias: 'p',
@@ -138,14 +162,18 @@ const args = require('yargs')
   .strict()
   .argv;
 
+if (args.save && args.load) {
+    throw Error('Cannot load and save at the same time.');
+}
 if (args.dryRun) {
     console.log('Dry-run: Not writing to Google Calendar');
 }
-syncEvents(args.dryRun, args.force);
+
+syncEvents(args.dryRun, args.force, args.save, args.load);
 
 if (args.period) {
     setInterval(() => {
         console.log('Periodic run after %d min', args.period);
-        syncEvents(args.dryRun, args.force);
+        syncEvents(args.dryRun, args.force, false, false);
     }, args.period * 1000 * 60);
 }
