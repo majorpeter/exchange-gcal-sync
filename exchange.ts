@@ -24,38 +24,38 @@ interface Attendee {
 export type ResponseStatus = "Organizer" | "Accepted" | "TentativelyAccepted" | "NotResponded";
 
 export interface Event {
-    "@odata.etag": string;
-    "@odata.id": string;
+    "@odata.etag"?: string;
+    "@odata.id"?: string;
     Attendees: Attendee[];
     Body: {
         ContentType: "HTML" | string;
         Content: string;
     };
-    BodyPreview: string;
+    BodyPreview?: string;
     End: DateTime;
     iCalUId: string;
-    IsReminderOn: boolean;
+    IsReminderOn?: boolean;
     LastModifiedDateTime: string;
     Location: {
         DisplayName: string;
-        Address: {
+        Address?: {
             Type: string;
         };
-        Coordinates: any;
+        Coordinates?: any;
     };
-    Organizer: {
+    Organizer?: {
         EmailAddress: Email;
     };
-    ReminderMinutesBeforeStart: number;
+    ReminderMinutesBeforeStart?: number;
     ResponseStatus: {
         Response: ResponseStatus;
-        Time: string;
+        Time?: string;
     };
-    Sensitivity: "Normal" | "Private";
-    ShowAs: "Busy" | "Tentative" | "Oof";
+    Sensitivity?: "Normal" | "Private";
+    ShowAs?: "Busy" | "Tentative" | "Oof";
     Start: DateTime;
     Subject: string;
-    WebLink: string;
+    WebLink?: string;
 };
 
 export interface EventList {

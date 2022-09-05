@@ -1,6 +1,9 @@
 module.exports = {
-    startOfWeek: function() {
-        let date = new Date();
+    startOfWeek: function(date) {
+        if (typeof(date) == 'undefined') {
+            date = new Date();
+        }
+
         date.setHours(0, 0, 0, 0);
         let day = date.getDay(), diff = date.getDate() - day + (day == 0 ? -6:1); // adjust when day is sunday
         date.setDate(diff);

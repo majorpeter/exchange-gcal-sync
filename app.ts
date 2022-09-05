@@ -6,7 +6,7 @@ import path = require('path');
 import { Exchange } from './exchange';
 import { GoogleCalendar } from './google';
 
-const config : {
+const config: {
     exchangeServerUrl: string;
     exchangeDomain: string;
     exchangeUsername: string;
@@ -16,34 +16,97 @@ const config : {
 let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
-function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'confirmed'|'tentative' {
+function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'confirmed' | 'tentative' {
     switch (response) {
-    case "Organizer":
-    case "Accepted":
-        return 'confirmed';
-    case "TentativelyAccepted":
-    case "NotResponded":
-        return 'tentative';
-    default:
-        throw Error('Unknown response status: ' + response);
+        case "Organizer":
+        case "Accepted":
+            return 'confirmed';
+        case "TentativelyAccepted":
+        case "NotResponded":
+            return 'tentative';
+        default:
+            throw Error('Unknown response status: ' + response);
     }
 }
 
 function formatCalendarEventBody(event: Exchange.Event): string {
     let result = '';
+
     if (event.Attendees.length > 0) {
         result += '<strong>Attendees</strong>:\n';
         result += event.Attendees.map(attendee => {
             return attendee.EmailAddress.Name + ' &lt;' + attendee.EmailAddress.Address + '&gt;';
         }).join('; ') + '\n';
     }
+
     result += event.Body.Content;
-    result += '<a href="' + event.WebLink + '">View in Exchange</a>';
+
+    if (event.WebLink) {
+        result += '<a href="' + event.WebLink + '">View in Exchange</a>';
+    }
 
     return result;
 }
 
-async function syncEvents(dryRun: boolean, forceUpdate: boolean, save: boolean, load: boolean) {
+/**
+ * creates a bogus event for syncing that contains statistics about the week
+ * @param events {Exchange.Event[]} all events found in query
+ * @returns {Exchange.Event} bogus event
+ */
+function generateStatisticsEvent(events: readonly Exchange.Event[]): Exchange.Event {
+    const minimumStartDateTime = events.map(event => event.Start.DateTime).reduce((prev, curr) => (prev < curr) ? prev : curr);
+    const startOfWeek: Date = util.startOfWeek(new Date(minimumStartDateTime + 'Z'));
+
+    const lastModifiedDateTime = events.map(event => event.LastModifiedDateTime).reduce((prev, curr) => (prev > curr) ? prev : curr);
+    const endOfWeekDateTime = new Date(startOfWeek.valueOf() + 7 * 24 * 3600e3).toISOString();
+    const weekMeetingsSorted = events.filter(event => (event.End.DateTime < endOfWeekDateTime) && event.Attendees.length > 0)
+                                .sort((a, b) => (a.Start.DateTime < b.Start.DateTime) ? -1 : 1);
+
+    let meetingHours = 0;
+    let overLapCount = 0;
+    weekMeetingsSorted.forEach((event, index, array) => {
+        const start = new Date(event.Start.DateTime + 'Z');
+        const end = new Date(event.End.DateTime + 'Z');
+        meetingHours += (+end - +start) / 3600e3;
+
+        for (let i = 0; i < index; i++) {
+            if (array[i].End.DateTime > event.Start.DateTime) {
+                overLapCount++;
+
+                const ostart = new Date(array[i].Start.DateTime + 'Z');
+                const oend = new Date(array[i].End.DateTime + 'Z');
+
+                meetingHours -= (Math.min(+oend, +end) - +start) / 3600e3;
+            }
+        }
+    });
+    const ratio = (meetingHours / 40 * 100).toFixed(2) + '%';
+
+    return {
+        Subject: `Exchange Calendar Statistics (${ratio})`,
+        Body: {
+            ContentType: 'HTML', Content:
+                `Meetings this week: <b>${weekMeetingsSorted.length}</b>\n` +
+                `Meeting hours this week: <b>${meetingHours.toFixed(1)} h (${ratio})</b>\n` +
+                `Overlapping meetings this week: <b>${overLapCount}</b>`
+        },
+        Attendees: [],
+        Start: {
+            DateTime: new Date(startOfWeek.valueOf() + 8 * 3600e3).toISOString().slice(0, -1),
+            TimeZone: 'UTC',
+        },
+        End: {
+            DateTime: new Date(startOfWeek.valueOf() + 8 * 3600e3 + 600e3).toISOString().slice(0, -1),
+            TimeZone: 'UTC',
+        },
+        LastModifiedDateTime: lastModifiedDateTime,
+        Location: { DisplayName: '' },
+        ResponseStatus: { Response: 'Organizer' },
+        iCalUId: 'Statistics',
+    };
+}
+
+async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean, save: boolean, load: boolean) {
     interface gEvent extends calendar_v3.Schema$Event {
         found?: boolean;
         extendedProperties?: {
@@ -75,19 +138,25 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, save: boolean, 
         writeFileSync('exchEvents.json', JSON.stringify(exchEvents));
     }
 
+    if (stats && (exchEvents.value.length > 0)) {
+        exchEvents.value.push(generateStatisticsEvent(exchEvents.value));
+    }
+
     exchEvents.value.forEach((event: Exchange.Event) => {
         const gcalEventBody: gEvent = {
             summary: event.Subject,
             description: formatCalendarEventBody(event),
             location: event.Location.DisplayName,
-            start: {dateTime: (new Date(event.Start.DateTime + 'Z')).toISOString()},
-            end: {dateTime: (new Date(event.End.DateTime + 'Z')).toISOString()},
+            start: { dateTime: (new Date(event.Start.DateTime + 'Z')).toISOString() },
+            end: { dateTime: (new Date(event.End.DateTime + 'Z')).toISOString() },
             status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
             // cannot use 'iCalUID' for sync
-            extendedProperties: {private: {
-                sourceICalUId: event.iCalUId,
-                sourceLastModified: event.LastModifiedDateTime
-            }}
+            extendedProperties: {
+                private: {
+                    sourceICalUId: event.iCalUId,
+                    sourceLastModified: event.LastModifiedDateTime
+                }
+            }
         };
 
         let foundGEvent = gEvents.find(value => value.extendedProperties.private.sourceICalUId == event.iCalUId);
@@ -128,39 +197,44 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, save: boolean, 
 }
 
 const args = require('yargs')
-  .scriptName('exchange-gcal-sync')
-  .option('force', {
-      type: 'boolean',
-      alias: 'f',
-      default: false,
-      desc: 'Force update of entries even if unchanged'
-  })
-  .option('dry-run', {
-      type: 'boolean',
-      alias: 'n',
-      default: false,
-      desc: 'Do not change Google Calendar entries, just log instead.'
-  })
-  .option('save', {
-    type: 'boolean',
-    default: false,
-    desc: 'Save remote data to JSON files (useful for debugging)'
-  })
-  .option('load', {
-    type: 'boolean',
-    default: false,
-    desc: 'Load "remote" data from JSON files (when debugging)'
-  })
-  .option('period', {
-      type: 'number',
-      alias: 'p',
-      desc: 'Update period in minutes',
-      nargs: 1,
-      default: null
-  })
-  .help()
-  .strict()
-  .argv;
+    .scriptName('exchange-gcal-sync')
+    .option('force', {
+        type: 'boolean',
+        alias: 'f',
+        default: false,
+        desc: 'Force update of entries even if unchanged'
+    })
+    .option('dry-run', {
+        type: 'boolean',
+        alias: 'n',
+        default: false,
+        desc: 'Do not change Google Calendar entries, just log instead.'
+    })
+    .option('period', {
+        type: 'number',
+        alias: 'p',
+        desc: 'Update period in minutes',
+        nargs: 1,
+        default: null
+    })
+    .option('stats', {
+        type: 'boolean',
+        default: false,
+        desc: 'Include a calendar entry with statistics',
+    })
+    .option('save', {
+        type: 'boolean',
+        default: false,
+        desc: 'Save remote data to JSON files (useful for debugging)'
+    })
+    .option('load', {
+        type: 'boolean',
+        default: false,
+        desc: 'Load "remote" data from JSON files (when debugging)'
+    })
+    .help()
+    .strict()
+    .argv;
 
 if (args.save && args.load) {
     throw Error('Cannot load and save at the same time.');
@@ -169,11 +243,11 @@ if (args.dryRun) {
     console.log('Dry-run: Not writing to Google Calendar');
 }
 
-syncEvents(args.dryRun, args.force, args.save, args.load);
+syncEvents(args.dryRun, args.force, args.stats, args.save, args.load);
 
 if (args.period) {
     setInterval(() => {
         console.log('Periodic run after %d min', args.period);
-        syncEvents(args.dryRun, args.force, false, false);
+        syncEvents(args.dryRun, args.force, args.stats, false, false);
     }, args.period * 1000 * 60);
 }
