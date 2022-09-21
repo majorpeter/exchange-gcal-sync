@@ -96,6 +96,9 @@ export class Calendar {
                 password: this.password,
                 domain: this.domain
             }, function (err, res) {
+                if (err) {
+                    reject(err);
+                }
                 if (res.statusCode != 200) {
                     reject(res);
                 }

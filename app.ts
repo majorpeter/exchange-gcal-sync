@@ -106,7 +106,7 @@ function generateStatisticsEvent(events: readonly Exchange.Event[]): Exchange.Ev
     };
 }
 
-async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean, save: boolean, load: boolean) {
+async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean, save: boolean, load: boolean): Promise<boolean> {
     interface gEvent extends calendar_v3.Schema$Event {
         found?: boolean;
         extendedProperties?: {
@@ -123,11 +123,23 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
     let exchEvents: Exchange.EventList;
 
     if (!load) {
-        gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
-        console.log('Found %d events in Google Calendar', gEvents.length);
+        try {
+            gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+            console.log('Found %d events in Google Calendar', gEvents.length);
+        } catch (e) {
+            console.log('Google Calendar fetch failed:');
+            console.log(e);
+            return false;
+        }
 
-        exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
-        console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
+        try {
+            exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+            console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
+        } catch (e) {
+            console.log('Exchange Calendar fetch failed:');
+            console.log(e);
+            return false;
+        }
     } else {
         gEvents = JSON.parse(readFileSync('gEvents.json').toString());
         exchEvents = JSON.parse(readFileSync('exchEvents.json').toString());
@@ -193,7 +205,9 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
         }
     });
 
+    //FIXME returns before all async remote operations are done
     console.log('Sync done');
+    return true;
 }
 
 const args = require('yargs')
