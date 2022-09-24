@@ -16,6 +16,8 @@ const config: {
 let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'confirmed' | 'tentative' {
     switch (response) {
         case "Organizer":
@@ -154,7 +156,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
         exchEvents.value.push(generateStatisticsEvent(exchEvents.value));
     }
 
-    exchEvents.value.forEach((event: Exchange.Event) => {
+    for (const event of exchEvents.value) {
         const gcalEventBody: gEvent = {
             summary: event.Subject,
             description: formatCalendarEventBody(event),
@@ -188,33 +190,35 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
 
             if (event.LastModifiedDateTime == foundGEvent.extendedProperties.private.sourceLastModified) {
                 if (!forceUpdate) {
-                    return;
+                    continue;
                 }
             }
 
             console.log('patching event: %s', event.Subject);
             if (!dryRun) {
-                gcal.patchEvent(foundGEvent.id, gcalEventBody);
+                await gcal.patchEvent(foundGEvent.id, gcalEventBody);
+                await sleep(1000);  // rate limiting
             }
         } else {
             console.log('inserting event: %s', event.Subject);
             if (!dryRun) {
-                gcal.insertEvent(gcalEventBody);
+                await gcal.insertEvent(gcalEventBody);
+                await sleep(1000);  // rate limiting
             }
         }
-    });
+    }
 
     // remove google calendar entries that are no longer in exchange
-    gEvents.forEach((event) => {
+    for (const event of gEvents) {
         if (!event.found) {
             console.log('removing: %s', event.summary);
             if (!dryRun) {
-                gcal.deleteCalendarEvent(event.id);
+                await gcal.deleteCalendarEvent(event.id);
+                await sleep(1000);  // rate limiting
             }
         }
-    });
+    }
 
-    //FIXME returns before all async remote operations are done
     console.log('Sync done');
     return true;
 }
