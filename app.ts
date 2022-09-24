@@ -1,10 +1,9 @@
-const util = require('./util');
-
 import { readFileSync, writeFileSync } from 'fs';
 import { calendar_v3 } from 'googleapis';
 import path = require('path');
 import { Exchange } from './exchange';
 import { GoogleCalendar } from './google';
+import { Util } from './util';
 
 const config: {
     exchangeServerUrl: string;
@@ -57,7 +56,7 @@ function formatCalendarEventBody(event: Exchange.Event): string {
  */
 function generateStatisticsEvent(events: readonly Exchange.Event[]): Exchange.Event {
     const minimumStartDateTime = events.map(event => event.Start.DateTime).reduce((prev, curr) => (prev < curr) ? prev : curr);
-    const startOfWeek: Date = util.startOfWeek(new Date(minimumStartDateTime + 'Z'));
+    const startOfWeek: Date = Util.startOfWeek(new Date(minimumStartDateTime + 'Z'));
 
     const lastModifiedDateTime = events.map(event => event.LastModifiedDateTime).reduce((prev, curr) => (prev > curr) ? prev : curr);
     const endOfWeekDateTime = new Date(startOfWeek.valueOf() + 7 * 24 * 3600e3).toISOString();
@@ -126,7 +125,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
 
     if (!load) {
         try {
-            gEvents = await gcal.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+            gEvents = await gcal.getCalendarEvents(Util.startOfWeek(), Util.endOfNextWeek());
             console.log('Found %d events in Google Calendar', gEvents.length);
         } catch (e) {
             console.log('Google Calendar fetch failed:');
@@ -135,7 +134,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
         }
 
         try {
-            exchEvents = await exch.getCalendarEvents(util.startOfWeek(), util.endOfNextWeek());
+            exchEvents = await exch.getCalendarEvents(Util.startOfWeek(), Util.endOfNextWeek());
             console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
         } catch (e) {
             console.log('Exchange Calendar fetch failed:');

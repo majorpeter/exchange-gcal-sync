@@ -1,5 +1,5 @@
-module.exports = {
-    startOfWeek: function(date) {
+export namespace Util {
+    export function startOfWeek(date?: Date): Date {
         if (typeof(date) == 'undefined') {
             date = new Date();
         }
@@ -8,27 +8,27 @@ module.exports = {
         let day = date.getDay(), diff = date.getDate() - day + (day == 0 ? -6:1); // adjust when day is sunday
         date.setDate(diff);
         return date;
-    },
+    }
 
-    endOfWeek: function() {
+    export function endOfWeek(): Date {
         let date = this.startOfWeek();
         date.setDate(date.getDate() + 7);
         return date;
-    },
+    }
 
-    endOfNextWeek: function() {
+    export function endOfNextWeek(): Date {
         let date = this.startOfWeek();
         date.setDate(date.getDate() + 14);
         return date;
-    },
+    }
 
-    startOfDay: function() {
+    export function startOfDay(): Date {
         let date = new Date();
         date.setHours(0, 0, 0, 0);
         return date;
-    },
+    }
 
-    endOfDay: function() {
+    export function endOfDay(): Date {
         let date = new Date();
         date.setHours(23, 59, 59, 0);
         return date;
