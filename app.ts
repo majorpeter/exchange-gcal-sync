@@ -198,7 +198,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
     // remove google calendar entries that are no longer in exchange
     gEvents.forEach((event) => {
         if (!event.found) {
-            console.log('removing: %d', event.summary);
+            console.log('removing: %s', event.summary);
             if (!dryRun) {
                 gcal.deleteCalendarEvent(event.id);
             }
