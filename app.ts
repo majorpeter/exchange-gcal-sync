@@ -11,6 +11,7 @@ const config: {
     exchangeUsername: string;
     exchangePassword: string;
     googleCalendarId: string;
+    lookaheadDays: number;
 } = JSON.parse(readFileSync(path.join(__dirname, 'config.json')).toString());
 let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
 let gcal = new GoogleCalendar(config.googleCalendarId);
@@ -125,7 +126,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
 
     if (!load) {
         const startDateTime = Util.startOfWeek();
-        const endDateTime = Util.daysFromDate(14, startDateTime);
+        const endDateTime = Util.daysFromDate(config.lookaheadDays, startDateTime);
 
         try {
             gEvents = await gcal.getCalendarEvents(startDateTime, endDateTime);
