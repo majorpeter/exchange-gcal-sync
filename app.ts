@@ -171,7 +171,16 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
             }
         };
 
-        let foundGEvent = gEvents.find(value => value.extendedProperties.private.sourceICalUId == event.iCalUId);
+        let foundGEvent = gEvents.find(value => {
+            try {
+                return value.extendedProperties.private.sourceICalUId == event.iCalUId;
+            } catch (e) {
+                // TypeError if keys not present in event object
+                if (e instanceof TypeError) {
+                    return false;
+                }
+            }
+        });
 
         if (foundGEvent) {
             // flags 'not to delete' later
