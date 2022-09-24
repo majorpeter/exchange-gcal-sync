@@ -10,6 +10,12 @@ export namespace Util {
         return date;
     }
 
+    export function daysFromDate(days: number, date: Date): Date {
+        let d = new Date(date);
+        d.setDate(d.getDate() + days);
+        return d;
+    }
+
     export function endOfWeek(): Date {
         let date = this.startOfWeek();
         date.setDate(date.getDate() + 7);

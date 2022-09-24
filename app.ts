@@ -124,8 +124,11 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
     let exchEvents: Exchange.EventList;
 
     if (!load) {
+        const startDateTime = Util.startOfWeek();
+        const endDateTime = Util.daysFromDate(14, startDateTime);
+
         try {
-            gEvents = await gcal.getCalendarEvents(Util.startOfWeek(), Util.endOfNextWeek());
+            gEvents = await gcal.getCalendarEvents(startDateTime, endDateTime);
             console.log('Found %d events in Google Calendar', gEvents.length);
         } catch (e) {
             console.log('Google Calendar fetch failed:');
@@ -134,7 +137,7 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
         }
 
         try {
-            exchEvents = await exch.getCalendarEvents(Util.startOfWeek(), Util.endOfNextWeek());
+            exchEvents = await exch.getCalendarEvents(startDateTime, endDateTime);
             console.log('Found %d events in Exchange Calendar', exchEvents.value.length);
         } catch (e) {
             console.log('Exchange Calendar fetch failed:');
