@@ -15,6 +15,30 @@ const TOKEN_PATH = path.join(__dirname, 'token.json');
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 
 /**
+ * not defined in Google's lib :(
+ */
+export enum GoogleCalendarColor {
+    Blue = '1',
+    Green = '2',
+    Purple = '3',
+    Red = '4',
+    Yellow = '5',
+    Orange = '6',
+    Turquoise = '7',
+    Gray = '8',
+    BoldBlue = '9',
+    BoldGreen = '10',
+    BoldRed = '11'
+};
+
+/**
+ * adds enum names to calendar_v3.Schema$Event's colorId field
+ */
+export interface GoogleCalendarEvent extends Omit<calendar_v3.Schema$Event, 'colorId'> {
+    colorId?: GoogleCalendarColor;
+}
+
+/**
  * based on Google's Node.js example code
  * @see https://developers.google.com/calendar/api/quickstart/nodejs
  */
@@ -33,7 +57,7 @@ export class GoogleCalendar {
      * @param {Date} endDateTime end date and time for filtering
      * @note max 1000 entries are returned
      */
-    async getCalendarEvents(startDateTime: Date, endDateTime: Date): Promise<calendar_v3.Schema$Event[]> {
+    async getCalendarEvents(startDateTime: Date, endDateTime: Date): Promise<GoogleCalendarEvent[]> {
         const calendar = google.calendar({ version: 'v3', auth: await this.#auth });
         const res = await calendar.events.list({
             calendarId: this.#calendarId,
@@ -43,7 +67,7 @@ export class GoogleCalendar {
             singleEvents: true,
             orderBy: 'startTime',
         });
-        return res.data.items;
+        return <GoogleCalendarEvent[]> res.data.items;
     }
 
     /**

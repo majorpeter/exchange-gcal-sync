@@ -1,8 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { calendar_v3 } from 'googleapis';
 import path = require('path');
 import { Exchange } from './exchange';
-import { GoogleCalendar } from './google';
+import { GoogleCalendar, GoogleCalendarColor, GoogleCalendarEvent } from './google';
 import { Util } from './util';
 
 const config: {
@@ -29,6 +28,16 @@ function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'conf
         default:
             throw Error('Unknown response status: ' + response);
     }
+}
+
+function convertShowAsToColor(showAs: string): GoogleCalendarColor | null {
+    switch (showAs) {
+    case 'Oof':
+        return GoogleCalendarColor.Purple;
+    case 'Tentative':
+        return GoogleCalendarColor.Turquoise;
+    }
+    return null;
 }
 
 function formatCalendarEventBody(event: Exchange.Event): string {
@@ -109,7 +118,7 @@ function generateStatisticsEvent(events: readonly Exchange.Event[]): Exchange.Ev
 }
 
 async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean, save: boolean, load: boolean): Promise<boolean> {
-    interface gEvent extends calendar_v3.Schema$Event {
+    interface gEvent extends GoogleCalendarEvent {
         found?: boolean;
         extendedProperties?: {
             private?: {
@@ -167,6 +176,8 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
             start: { dateTime: (new Date(event.Start.DateTime + 'Z')).toISOString() },
             end: { dateTime: (new Date(event.End.DateTime + 'Z')).toISOString() },
             status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
+            colorId: convertShowAsToColor(event.ShowAs),
+
             // cannot use 'iCalUID' for sync
             extendedProperties: {
                 private: {
