@@ -98,9 +98,11 @@ export class Calendar {
             }, function (err, res) {
                 if (err) {
                     reject(err);
+                    return;
                 }
                 if (res.statusCode != 200) {
                     reject(res);
+                    return;
                 }
                 resolve(JSON.parse(res.body));
             });
