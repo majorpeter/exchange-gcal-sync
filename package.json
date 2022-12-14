@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "main": "app.js",
   "scripts": {
+    "start": "node --openssl-legacy-provider app.js",
     "build": "tsc"
   },
   "dependencies": {
