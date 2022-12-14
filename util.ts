@@ -1,3 +1,6 @@
+import { Exchange } from "./exchange";
+import { GoogleCalendarColor } from "./google";
+
 export namespace Util {
     export function startOfWeek(date?: Date): Date {
         if (typeof(date) == 'undefined') {
@@ -38,6 +41,29 @@ export namespace Util {
         let date = new Date();
         date.setHours(23, 59, 59, 0);
         return date;
+    }
+
+    export function convertExchResponseToGCal(response: Exchange.ResponseStatus): 'confirmed' | 'tentative' {
+        switch (response) {
+            case "Organizer":
+            case "Accepted":
+                return 'confirmed';
+            case "TentativelyAccepted":
+            case "NotResponded":
+                return 'tentative';
+            default:
+                throw Error('Unknown response status: ' + response);
+        }
+    }
+
+    export function convertExchShowAsToGCalColor(showAs: string): GoogleCalendarColor | null {
+        switch (showAs) {
+        case 'Oof':
+            return GoogleCalendarColor.Purple;
+        case 'Tentative':
+            return GoogleCalendarColor.Turquoise;
+        }
+        return null;
     }
 
     export function convertExchUtcDateTimeToGCal(dateTime: string, isAllDay: boolean): string {

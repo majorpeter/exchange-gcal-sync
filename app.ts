@@ -17,29 +17,6 @@ let gcal = new GoogleCalendar(config.googleCalendarId);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function convertExchangeResponseToGCal(response: Exchange.ResponseStatus): 'confirmed' | 'tentative' {
-    switch (response) {
-        case "Organizer":
-        case "Accepted":
-            return 'confirmed';
-        case "TentativelyAccepted":
-        case "NotResponded":
-            return 'tentative';
-        default:
-            throw Error('Unknown response status: ' + response);
-    }
-}
-
-function convertShowAsToColor(showAs: string): GoogleCalendarColor | null {
-    switch (showAs) {
-    case 'Oof':
-        return GoogleCalendarColor.Purple;
-    case 'Tentative':
-        return GoogleCalendarColor.Turquoise;
-    }
-    return null;
-}
-
 function formatCalendarEventBody(event: Exchange.Event): string {
     let result = '';
 
@@ -176,8 +153,8 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
             location: event.Location.DisplayName,
             start: { dateTime: Util.convertExchUtcDateTimeToGCal(event.Start.DateTime, event.IsAllDay) },
             end: { dateTime: Util.convertExchUtcDateTimeToGCal(event.End.DateTime, event.IsAllDay) },
-            status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
-            colorId: convertShowAsToColor(event.ShowAs),
+            status: Util.convertExchResponseToGCal(event.ResponseStatus.Response),
+            colorId: Util.convertExchShowAsToGCalColor(event.ShowAs),
 
             // cannot use 'iCalUID' for sync
             extendedProperties: {
