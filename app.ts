@@ -114,6 +114,7 @@ function generateStatisticsEvent(events: readonly Exchange.Event[]): Exchange.Ev
         Location: { DisplayName: '' },
         ResponseStatus: { Response: 'Organizer' },
         iCalUId: 'Statistics',
+        IsAllDay: false,
     };
 }
 
@@ -173,8 +174,8 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
             summary: event.Subject,
             description: formatCalendarEventBody(event),
             location: event.Location.DisplayName,
-            start: { dateTime: (new Date(event.Start.DateTime + 'Z')).toISOString() },
-            end: { dateTime: (new Date(event.End.DateTime + 'Z')).toISOString() },
+            start: { dateTime: Util.convertExchUtcDateTimeToGCal(event.Start.DateTime, event.IsAllDay) },
+            end: { dateTime: Util.convertExchUtcDateTimeToGCal(event.End.DateTime, event.IsAllDay) },
             status: convertExchangeResponseToGCal(event.ResponseStatus.Response),
             colorId: convertShowAsToColor(event.ShowAs),
 

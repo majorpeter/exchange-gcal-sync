@@ -39,4 +39,12 @@ export namespace Util {
         date.setHours(23, 59, 59, 0);
         return date;
     }
+
+    export function convertExchUtcDateTimeToGCal(dateTime: string, isAllDay: boolean): string {
+        if (!isAllDay) {
+            return (new Date(dateTime + 'Z')).toISOString();
+        } else {
+            return dateTime; //.split('T')[0];
+        }
+    }
 }

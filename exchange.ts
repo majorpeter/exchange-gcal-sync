@@ -34,6 +34,7 @@ export interface Event {
     BodyPreview?: string;
     End: DateTime;
     iCalUId: string;
+    IsAllDay: boolean;
     IsReminderOn?: boolean;
     LastModifiedDateTime: string;
     Location: {
