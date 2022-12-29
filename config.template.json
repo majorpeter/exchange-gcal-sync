@@ -4,5 +4,6 @@
     "exchangeDomain": "WORKGROUP",
     "exchangeServerUrl": "https://mycompany.example.com/",
     "googleCalendarId": "rand0mg00gl3h4$h@group.calendar.google.com",
+    "timeZone": "Europe/Budapest",
     "lookaheadDays": 14
 }

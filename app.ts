@@ -10,6 +10,7 @@ const config: {
     exchangeUsername: string;
     exchangePassword: string;
     googleCalendarId: string;
+    timeZone: string;
     lookaheadDays: number;
 } = JSON.parse(readFileSync(path.join(__dirname, 'config.json')).toString());
 let exch = new Exchange.Calendar(config.exchangeServerUrl, config.exchangeDomain, config.exchangeUsername, config.exchangePassword);
@@ -151,8 +152,8 @@ async function syncEvents(dryRun: boolean, forceUpdate: boolean, stats: boolean,
             summary: event.Subject,
             description: formatCalendarEventBody(event),
             location: event.Location.DisplayName,
-            start: { dateTime: Util.convertExchUtcDateTimeToGCal(event.Start.DateTime, event.IsAllDay) },
-            end: { dateTime: Util.convertExchUtcDateTimeToGCal(event.End.DateTime, event.IsAllDay) },
+            start: { dateTime: Util.convertExchUtcDateTimeToGCal(event.Start.DateTime, event.IsAllDay), timeZone: config.timeZone },
+            end: { dateTime: Util.convertExchUtcDateTimeToGCal(event.End.DateTime, event.IsAllDay), timeZone: config.timeZone },
             status: Util.convertExchResponseToGCal(event.ResponseStatus.Response),
             colorId: Util.convertExchShowAsToGCalColor(event.ShowAs),
 
